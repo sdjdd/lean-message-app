@@ -7,108 +7,86 @@
  */
 
 import React from 'react';
-import {
-  SafeAreaView,
-  StyleSheet,
-  ScrollView,
-  View,
-  Text,
-  StatusBar,
-} from 'react-native';
+import {SafeAreaView, StyleSheet, ScrollView, Text, View} from 'react-native';
 
-import {
-  Header,
-  LearnMoreLinks,
-  Colors,
-  DebugInstructions,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
+import {realtime} from './client';
 
-const App: () => React$Node = () => {
+function LogItem(props) {
+  let backgroundColor = 'green';
+  let color = '#fff';
+  if (props.ts > 500) {
+    color = '#000';
+    backgroundColor = 'yellow';
+  }
+  if (props.ts > 1000) {
+    backgroundColor = 'red';
+  }
+
+  let text = props.ts + 'ms';
+  if (props.ts > 10000) {
+    text = Math.round(props.ts / 1000) + 's';
+  }
   return (
-    <>
-      <StatusBar barStyle="dark-content" />
-      <SafeAreaView>
-        <ScrollView
-          contentInsetAdjustmentBehavior="automatic"
-          style={styles.scrollView}>
-          <Header />
-          {global.HermesInternal == null ? null : (
-            <View style={styles.engine}>
-              <Text style={styles.footer}>Engine: Hermes</Text>
-            </View>
-          )}
-          <View style={styles.body}>
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>Step One</Text>
-              <Text style={styles.sectionDescription}>
-                Edit <Text style={styles.highlight}>App.js</Text> to change this
-                screen and then come back to see your edits.
-              </Text>
-            </View>
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>See Your Changes</Text>
-              <Text style={styles.sectionDescription}>
-                <ReloadInstructions />
-              </Text>
-            </View>
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>Debug</Text>
-              <Text style={styles.sectionDescription}>
-                <DebugInstructions />
-              </Text>
-            </View>
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>Learn More</Text>
-              <Text style={styles.sectionDescription}>
-                Read the docs to discover what to do next:
-              </Text>
-            </View>
-            <LearnMoreLinks />
-          </View>
+    <View style={styles.logItemBox}>
+      <Text style={{...styles.logItemTs, color, backgroundColor}}>+{text}</Text>
+      <Text>{props.text}</Text>
+    </View>
+  );
+}
+
+export default class App extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      logs: [],
+    };
+    this.scrollView = React.createRef();
+    this.lastTs = Date.now();
+  }
+
+  async componentDidMount() {
+    this.debug('rendered');
+    const client = await realtime.createIMClient('114514');
+    this.debug('IMClient created');
+  }
+
+  debug = (message) => {
+    const now = Date.now();
+    const ts = now - this.lastTs;
+    this.lastTs = now;
+    const logItem = {
+      key: this.state.logs.length,
+      text: message,
+      ts,
+    };
+    this.setState({
+      logs: [...this.state.logs, logItem],
+    });
+    console.log(logItem);
+  };
+
+  render() {
+    return (
+      <SafeAreaView style={{flex: 1, margin: 4}}>
+        <Text>LeanMessage</Text>
+        {/* <Button title="Clear Log" onPress={() => this.debug('lalala')} /> */}
+        <ScrollView ref={this.scrollView} style={{borderWidth: 1}}>
+          {this.state.logs.map((log) => (
+            <LogItem key={log.key} text={log.text} ts={log.ts} />
+          ))}
         </ScrollView>
       </SafeAreaView>
-    </>
-  );
-};
+    );
+  }
+}
 
 const styles = StyleSheet.create({
-  scrollView: {
-    backgroundColor: Colors.lighter,
+  logItemBox: {
+    flex: 1,
+    flexDirection: 'row',
   },
-  engine: {
-    position: 'absolute',
-    right: 0,
-  },
-  body: {
-    backgroundColor: Colors.white,
-  },
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
-  },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: Colors.black,
-  },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
-    color: Colors.dark,
-  },
-  highlight: {
-    fontWeight: '700',
-  },
-  footer: {
-    color: Colors.dark,
-    fontSize: 12,
-    fontWeight: '600',
-    padding: 4,
-    paddingRight: 12,
-    textAlign: 'right',
+  logItemTs: {
+    width: 64,
+    marginRight: 4,
   },
 });
-
-export default App;
